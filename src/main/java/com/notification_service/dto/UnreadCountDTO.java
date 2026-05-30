@@ -9,15 +9,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class NotificationEvent {
+public class UnreadCountDTO {
 
-    private String sourceSystem;
-    
-    private String recipientUserId;
-    
-    private String message;
-    
-    private String actionUrl;
-    
-    private String type;
+    private String userId;
+
+    private long unreadCount;
 }

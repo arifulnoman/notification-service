@@ -4,7 +4,6 @@ CREATE TABLE IF NOT EXISTS notifications (
     recipient_user_id VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
     action_url VARCHAR(255),
-    notification_type VARCHAR(50) NOT NULL,
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL
 );

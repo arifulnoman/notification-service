@@ -14,24 +14,25 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class NotificationResponse {
+public class NotificationPushDTO {
 
     private UUID id;
-    
+
     private String sourceSystem;
-    
+
     private String recipientUserId;
-    
+
     private String message;
-    
+
     private String actionUrl;
-    
+
     private boolean isRead;
-    
+
     private LocalDateTime createdAt;
 
-    public static NotificationResponse fromEntity(Notification notification) {
-        return NotificationResponse.builder()
+
+    public static NotificationPushDTO fromEntity(Notification notification) {
+        return NotificationPushDTO.builder()
                 .id(notification.getId())
                 .sourceSystem(notification.getSourceSystem())
                 .recipientUserId(notification.getRecipientUserId())
@@ -39,6 +40,15 @@ public class NotificationResponse {
                 .actionUrl(notification.getActionUrl())
                 .isRead(notification.isRead())
                 .createdAt(notification.getCreatedAt())
+                .build();
+    }
+
+    public static NotificationPushDTO fromEvent(NotificationEventDTO event, String userId) {
+        return NotificationPushDTO.builder()
+                .sourceSystem(event.getSourceSystem())
+                .recipientUserId(userId)
+                .message(event.getMessage())
+                .actionUrl(event.getActionUrl())
                 .build();
     }
 }

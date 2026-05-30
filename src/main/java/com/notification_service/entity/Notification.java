@@ -38,8 +38,6 @@ public class Notification {
     @Column(name = "action_url", length = 255)
     private String actionUrl;
 
-    @Column(name = "notification_type", nullable = false, length = 50)
-    private String notificationType;
 
     @Column(name = "is_read", nullable = false)
     private boolean isRead;
