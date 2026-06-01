@@ -55,7 +55,7 @@ public class MasterDataSourceConfig {
     Flyway masterFlyway(DataSource masterDataSource) {
         Flyway flyway = Flyway.configure()
                 .dataSource(masterDataSource)
-                .locations("classpath:db/master-migration")
+                .locations("classpath:db/master")
                 .load();
         flyway.migrate();
         log.info("Master DB Flyway migration completed.");

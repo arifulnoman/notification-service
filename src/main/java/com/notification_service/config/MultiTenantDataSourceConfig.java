@@ -101,7 +101,7 @@ public class MultiTenantDataSourceConfig {
     private void runTenantMigration(DataSource dataSource, String tenantId) {
         Flyway flyway = Flyway.configure()
                 .dataSource(dataSource)
-                .locations("classpath:db/tenant-migration")
+                .locations("classpath:db/tenant")
                 .load();
         flyway.migrate();
         log.info("Flyway tenant migration completed for: [{}]", tenantId);
