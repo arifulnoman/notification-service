@@ -3,6 +3,7 @@ package com.notification_service.config;
 import javax.sql.DataSource;
 
 import org.flywaydb.core.Flyway;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,7 +44,7 @@ public class MasterDataSourceConfig {
     }
 
     @Bean("masterJdbcTemplate")
-    JdbcTemplate masterJdbcTemplate(DataSource masterDataSource) {
+    JdbcTemplate masterJdbcTemplate(@Qualifier("masterDataSource") DataSource masterDataSource) {
         return new JdbcTemplate(masterDataSource);
     }
 
@@ -52,7 +53,7 @@ public class MasterDataSourceConfig {
      * creating the tenants table if it does not yet exist.
      */
     @Bean("masterFlyway")
-    Flyway masterFlyway(DataSource masterDataSource) {
+    Flyway masterFlyway(@Qualifier("masterDataSource") DataSource masterDataSource) {
         Flyway flyway = Flyway.configure()
                 .dataSource(masterDataSource)
                 .locations("classpath:db/master")
