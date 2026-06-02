@@ -3,6 +3,7 @@ package com.notification_service.config;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
@@ -10,6 +11,7 @@ import org.springframework.amqp.core.Declarable;
 import org.springframework.amqp.core.Declarables;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,14 +35,28 @@ public class RabbitMQConfig {
         return new DirectExchange(exchangeName);
     }
 
+    @Bean
+    DirectExchange deadLetterExchange() {
+        return new DirectExchange("notification.dlx");
+    }
+
+    @Bean
+    Queue deadLetterQueue() {
+        return new Queue("notification.dlq", true);
+    }
+
+    @Bean
+    Binding deadLetterBinding() {
+        return BindingBuilder.bind(deadLetterQueue()).to(deadLetterExchange()).with("notification.dlq");
+    }
+
     /**
      * Dynamically declares all queues listed in rabbitmq.queues and binds each
      * to the shared exchange using the queue name as the routing key.
-     * To add a new project queue, simply append its queue name to the
-     * comma-separated list in application.properties.
+     * Failed messages (after retries) are automatically routed to the DLX.
      *
      * Example:
-     *   rabbitmq.queues=hr.notification.queue,erp.notification.queue
+     *   rabbitmq.queues=hrms.notification.queue,erp.notification.queue
      */
     @Bean
     Declarables notificationQueuesAndBindings(DirectExchange exchange) {
@@ -51,9 +67,12 @@ public class RabbitMQConfig {
 
         List<Declarable> declarables = queueNames.stream()
                 .flatMap(name -> {
-                    Queue queue = new Queue(name, true);
+                    Queue queue = QueueBuilder.durable(name)
+                            .withArgument("x-dead-letter-exchange", "notification.dlx")
+                            .withArgument("x-dead-letter-routing-key", "notification.dlq")
+                            .build();
                     Binding binding = BindingBuilder.bind(queue).to(exchange).with(name);
-                    return java.util.stream.Stream.<Declarable>of(queue, binding);
+                    return Stream.<Declarable>of(queue, binding);
                 })
                 .collect(Collectors.toList());
 
