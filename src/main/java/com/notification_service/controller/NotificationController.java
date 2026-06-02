@@ -43,5 +43,11 @@ public class NotificationController {
         notificationService.markAsRead(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/read-all")
+    public ResponseEntity<Void> markAllAsRead(@RequestParam String userId) {
+        notificationService.markAllAsRead(userId);
+        return ResponseEntity.noContent().build();
+    }
 }
 

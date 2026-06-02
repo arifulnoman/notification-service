@@ -111,5 +111,13 @@ public class NotificationService {
             pushNotificationAndCount(null, notification.getRecipientUserId());
         });
     }
+
+    @Transactional
+    public void markAllAsRead(String userId) {
+        int updatedCount = notificationRepository.markAllAsReadByUserId(userId);
+        if (updatedCount > 0) {
+            pushNotificationAndCount(null, userId);
+        }
+    }
 }
 
