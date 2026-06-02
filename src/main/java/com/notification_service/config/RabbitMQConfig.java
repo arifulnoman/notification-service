@@ -27,9 +27,6 @@ public class RabbitMQConfig {
     @Value("${rabbitmq.exchange}")
     private String exchangeName;
 
-    @Value("${rabbitmq.routing-key}")
-    private String routingKey;
-
     @Bean
     DirectExchange exchange() {
         return new DirectExchange(exchangeName);
