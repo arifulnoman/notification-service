@@ -13,6 +13,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class NotificationEventDTO {
 
+    private String tenantId;
+
     private String sourceSystem;
 
     private List<String> recipientUserIds;
