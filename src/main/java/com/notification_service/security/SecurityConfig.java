@@ -27,7 +27,7 @@ public class SecurityConfig {
                 // Allow WebSocket handshake endpoints to be open initially (upgrading HTTP to WS). 
                 // The interceptor handles the actual STOMP CONNECT frame security.
                 .requestMatchers("/ws-notifications/**").permitAll()
-                // Secure all other REST API endpoints
+                .requestMatchers("/").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
