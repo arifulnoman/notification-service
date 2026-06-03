@@ -27,24 +27,22 @@ public class RabbitMQConfig {
     @Value("${rabbitmq.exchange}")
     private String exchangeName;
 
+    @Value("${rabbitmq.queue.dead-letter}")
+    private String deadLetterQueueName;
+
     @Bean
     DirectExchange exchange() {
         return new DirectExchange(exchangeName);
     }
 
     @Bean
-    DirectExchange deadLetterExchange() {
-        return new DirectExchange("notification.dlx");
-    }
-
-    @Bean
     Queue deadLetterQueue() {
-        return new Queue("notification.dlq", true);
+        return new Queue(deadLetterQueueName, true);
     }
 
     @Bean
     Binding deadLetterBinding() {
-        return BindingBuilder.bind(deadLetterQueue()).to(deadLetterExchange()).with("notification.dlq");
+        return BindingBuilder.bind(deadLetterQueue()).to(exchange()).with(deadLetterQueueName);
     }
 
     /**
@@ -65,8 +63,8 @@ public class RabbitMQConfig {
         List<Declarable> declarables = queueNames.stream()
                 .flatMap(name -> {
                     Queue queue = QueueBuilder.durable(name)
-                            .withArgument("x-dead-letter-exchange", "notification.dlx")
-                            .withArgument("x-dead-letter-routing-key", "notification.dlq")
+                            .withArgument("x-dead-letter-exchange", exchangeName)
+                            .withArgument("x-dead-letter-routing-key", deadLetterQueueName)
                             .build();
                     Binding binding = BindingBuilder.bind(queue).to(exchange).with(name);
                     return Stream.<Declarable>of(queue, binding);

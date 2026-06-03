@@ -72,7 +72,7 @@ public class TenantProvisioningService {
 
             log.info("Tenant [{}] not found. Auto-registering with URL [{}]", tenantId, dbUrl);
             masterJdbc.update(
-                    "INSERT INTO tenants (tenant_id, db_url, db_username, db_password, is_active) VALUES (?, ?, ?, ?, TRUE)",
+                    "INSERT INTO tenants (id, tenant_id, db_url, db_username, db_password, is_active, created_at) VALUES (gen_random_uuid(), ?, ?, ?, ?, TRUE, CURRENT_TIMESTAMP)",
                     tenantId, dbUrl, dbUsername, dbPassword);
         }
 
