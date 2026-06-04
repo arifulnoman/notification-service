@@ -1,7 +1,9 @@
 package com.notification_service.service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -13,9 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.notification_service.dto.NotificationEventDTO;
 import com.notification_service.dto.NotificationPushDTO;
 import com.notification_service.dto.NotificationResponse;
-import com.notification_service.dto.UnreadCountDTO;
 import com.notification_service.entity.Notification;
 import com.notification_service.repository.NotificationRepository;
+import com.notification_service.tenant.TenantContext;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +35,8 @@ public class NotificationService {
         List<String> recipients = event.getRecipientUserIds();
 
         if (recipients == null || recipients.isEmpty()) {
-            log.warn("Notification event from [{}] has no recipients — skipping", event.getSourceSystem());
+            log.warn("Notification event from [{}] tenant=[{}] has no recipients — skipping",
+                    event.getSourceSystem(), event.getTenantId());
             return;
         }
 
@@ -45,10 +48,9 @@ public class NotificationService {
     private void processForUser(NotificationEventDTO event, String userId) {
         if (event.isPersistNotification()) {
             Notification saved = saveNotification(event, userId);
-            pushNotification(NotificationPushDTO.fromEntity(saved));
-            pushUnreadCount(userId);
+            pushNotificationAndCount(NotificationPushDTO.fromEntity(saved), userId);
         } else {
-            pushNotification(NotificationPushDTO.fromEvent(event, userId));
+            pushNotificationAndCount(NotificationPushDTO.fromEvent(event, userId), userId);
         }
     }
 
@@ -66,51 +68,38 @@ public class NotificationService {
         return notificationRepository.save(notification);
     }
 
-    private void pushNotification(NotificationPushDTO push) {
-        messagingTemplate.convertAndSendToUser(
-                push.getRecipientUserId(),
-                "/queue/notifications",
-                push
-        );
-    }
-
-    private void pushUnreadCount(String userId) {
+    /**
+     * The WebSocket push principal is "tenantId:userId" (composite) so two separate
+     * client deployments sharing the same userId never receive each other's pushes.
+     */
+    private void pushNotificationAndCount(NotificationPushDTO push, String userId) {
         long unreadCount = notificationRepository.countByRecipientUserIdAndIsRead(userId, false);
-        messagingTemplate.convertAndSendToUser(
-                userId,
-                "/queue/notification-count",
-                UnreadCountDTO.builder()
-                        .userId(userId)
-                        .unreadCount(unreadCount)
-                        .build()
-        );
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("unreadCount", unreadCount);
+        if (push != null) {
+            payload.put("notification", push);
+        }
+
+        String tenantId = TenantContext.getTenantId();
+        String principal = tenantId + ":" + userId;
+        messagingTemplate.convertAndSendToUser(principal, "/queue/notifications", payload);
     }
 
     @Transactional(readOnly = true)
     public Page<NotificationResponse> getUserNotifications(
-            String userId, List<String> sourceSystems, boolean unreadOnly, Pageable pageable) {
+            String userId, boolean unreadOnly, Pageable pageable) {
 
         Page<Notification> page;
 
-        if (sourceSystems != null && !sourceSystems.isEmpty()) {
-            if (unreadOnly) {
-                page = notificationRepository
-                        .findByRecipientUserIdAndSourceSystemInAndIsReadOrderByCreatedAtDesc(
-                                userId, sourceSystems, false, pageable);
-            } else {
-                page = notificationRepository
-                        .findByRecipientUserIdAndSourceSystemInOrderByCreatedAtDesc(
-                                userId, sourceSystems, pageable);
-            }
+        if (unreadOnly) {
+            page = notificationRepository
+                    .findByRecipientUserIdAndIsReadOrderByCreatedAtDesc(userId, false, pageable);
         } else {
-            if (unreadOnly) {
-                page = notificationRepository
-                        .findByRecipientUserIdAndIsReadOrderByCreatedAtDesc(userId, false, pageable);
-            } else {
-                page = notificationRepository
-                        .findByRecipientUserIdOrderByCreatedAtDesc(userId, pageable);
-            }
+            page = notificationRepository
+                    .findByRecipientUserIdOrderByCreatedAtDesc(userId, pageable);
         }
+
         return page.map(NotificationResponse::fromEntity);
     }
 
@@ -119,8 +108,16 @@ public class NotificationService {
         notificationRepository.findById(id).ifPresent(notification -> {
             notification.setRead(true);
             notificationRepository.save(notification);
-            // Refresh unread count badge after marking as read
-            pushUnreadCount(notification.getRecipientUserId());
+            pushNotificationAndCount(null, notification.getRecipientUserId());
         });
     }
+
+    @Transactional
+    public void markAllAsRead(String userId) {
+        int updatedCount = notificationRepository.markAllAsReadByUserId(userId);
+        if (updatedCount > 0) {
+            pushNotificationAndCount(null, userId);
+        }
+    }
 }
+

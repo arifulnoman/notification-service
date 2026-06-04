@@ -22,6 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class JwtTokenProvider {
 
+    private static final String CLAIM_TENANT_ID = "tenantId";
+
     @Value("${jwt.secret}")
     private String jwtSecret;
 
@@ -36,12 +38,19 @@ public class JwtTokenProvider {
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String generateToken(String employeeVisibleId) {
+    /**
+     * Generates a JWT containing the userId as subject and tenantId as a custom claim.
+     *
+     * @param userId   the user identifier within the tenant
+     * @param tenantId short human-readable tenant identifier (e.g. "ACME", "NSL-ERP")
+     */
+    public String generateToken(String userId, String tenantId) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
 
         return Jwts.builder()
-                .setSubject(employeeVisibleId)
+                .setSubject(userId)
+                .claim(CLAIM_TENANT_ID, tenantId)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(key, SignatureAlgorithm.HS256)
@@ -58,15 +67,26 @@ public class JwtTokenProvider {
         return false;
     }
 
+    public String getUserId(String token) {
+        return parseClaims(token).getSubject();
+    }
+
+    public String getTenantId(String token) {
+        return parseClaims(token).get(CLAIM_TENANT_ID, String.class);
+    }
+
     public Authentication getAuthentication(String token) {
-        Claims claims = Jwts.parserBuilder()
+        String userId = getUserId(token);
+        String tenantId = getTenantId(token);
+        String principal = tenantId + ":" + userId;
+        return new UsernamePasswordAuthenticationToken(principal, token, Collections.emptyList());
+    }
+
+    private Claims parseClaims(String token) {
+        return Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
-        
-        // The subject is the employee Global ID
-        String userId = claims.getSubject();
-        return new UsernamePasswordAuthenticationToken(userId, token, Collections.emptyList());
     }
 }

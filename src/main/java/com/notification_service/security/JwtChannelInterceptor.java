@@ -29,11 +29,13 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
                 if (jwtTokenProvider.validateToken(token)) {
+                    // Principal is set as "tenantId:userId" — isolates WebSocket channels
+                    // per tenant so two deployments with the same userId never bleed.
                     Authentication auth = jwtTokenProvider.getAuthentication(token);
                     accessor.setUser(auth);
-                    log.debug("WebSocket connection authenticated for user: {}", auth.getName());
+                    log.debug("WebSocket CONNECT authenticated: principal=[{}]", auth.getName());
                 } else {
-                    log.warn("Invalid JWT token passed in WebSocket CONNECT frame.");
+                    log.warn("Invalid JWT token in WebSocket CONNECT frame.");
                     throw new IllegalArgumentException("Invalid Token");
                 }
             } else {

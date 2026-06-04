@@ -1,6 +1,5 @@
 package com.notification_service.controller;
 
-import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -29,14 +28,13 @@ public class NotificationController {
     @GetMapping
     public ResponseEntity<Page<NotificationResponse>> getUserNotifications(
             @RequestParam String userId,
-            @RequestParam(required = false) List<String> sourceSystems,
             @RequestParam(defaultValue = "false") boolean unreadOnly,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
-        Page<NotificationResponse> notifications = notificationService.getUserNotifications(userId, sourceSystems, unreadOnly,
-                pageable);
+        Page<NotificationResponse> notifications = notificationService
+                .getUserNotifications(userId, unreadOnly, pageable);
         return ResponseEntity.ok(notifications);
     }
 
@@ -45,4 +43,11 @@ public class NotificationController {
         notificationService.markAsRead(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/read-all")
+    public ResponseEntity<Void> markAllAsRead(@RequestParam String userId) {
+        notificationService.markAllAsRead(userId);
+        return ResponseEntity.noContent().build();
+    }
 }
+
