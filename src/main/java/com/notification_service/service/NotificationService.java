@@ -103,6 +103,11 @@ public class NotificationService {
         return page.map(NotificationResponse::fromEntity);
     }
 
+    @Transactional(readOnly = true)
+    public long getUnreadCount(String userId) {
+        return notificationRepository.countByRecipientUserIdAndIsRead(userId, false);
+    }
+
     @Transactional
     public void markAsRead(UUID id) {
         notificationRepository.findById(id).ifPresent(notification -> {

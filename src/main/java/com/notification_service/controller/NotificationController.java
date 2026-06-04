@@ -38,6 +38,12 @@ public class NotificationController {
         return ResponseEntity.ok(notifications);
     }
 
+    @GetMapping("/unread-count")
+    public ResponseEntity<Long> getUnreadCount(@RequestParam String userId) {
+        long count = notificationService.getUnreadCount(userId);
+        return ResponseEntity.ok(count);
+    }
+
     @PutMapping("/{id}/read")
     public ResponseEntity<Void> markAsRead(@PathVariable UUID id) {
         notificationService.markAsRead(id);
