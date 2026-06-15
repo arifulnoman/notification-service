@@ -24,4 +24,6 @@ public class NotificationEventDTO {
     private String actionUrl;
 
     private boolean persistNotification;
+
+    private SenderInfoDTO senderInfo;
 }

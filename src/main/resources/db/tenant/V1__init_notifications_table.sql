@@ -8,7 +8,10 @@ CREATE TABLE IF NOT EXISTS notifications (
     message           TEXT         NOT NULL,
     action_url        VARCHAR(255),
     is_read           BOOLEAN      NOT NULL DEFAULT FALSE,
-    created_at        TIMESTAMP WITHOUT TIME ZONE NOT NULL
+    created_at        TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    sender_user_id      VARCHAR(255),
+    sender_display_name VARCHAR(255),
+    sender_avatar_url   VARCHAR(1024)
 );
 
 -- Primary lookup: list notifications for a user, ordered by newest first

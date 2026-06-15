@@ -55,6 +55,7 @@ public class NotificationService {
     }
 
     private Notification saveNotification(NotificationEventDTO event, String userId) {
+        com.notification_service.dto.SenderInfoDTO sender = event.getSenderInfo();
         Notification notification = Notification.builder()
                 .id(UUID.randomUUID())
                 .sourceSystem(event.getSourceSystem())
@@ -63,6 +64,9 @@ public class NotificationService {
                 .actionUrl(event.getActionUrl())
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
+                .senderUserId(sender != null ? sender.getUserId() : null)
+                .senderDisplayName(sender != null ? sender.getDisplayName() : null)
+                .senderAvatarUrl(sender != null ? sender.getAvatarUrl() : null)
                 .build();
 
         return notificationRepository.save(notification);

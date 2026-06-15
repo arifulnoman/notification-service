@@ -30,6 +30,12 @@ public class NotificationPushDTO {
 
     private LocalDateTime createdAt;
 
+    private String senderUserId;
+
+    private String senderDisplayName;
+
+    private String senderAvatarUrl;
+
 
     public static NotificationPushDTO fromEntity(Notification notification) {
         return NotificationPushDTO.builder()
@@ -40,15 +46,22 @@ public class NotificationPushDTO {
                 .actionUrl(notification.getActionUrl())
                 .isRead(notification.isRead())
                 .createdAt(notification.getCreatedAt())
+                .senderUserId(notification.getSenderUserId())
+                .senderDisplayName(notification.getSenderDisplayName())
+                .senderAvatarUrl(notification.getSenderAvatarUrl())
                 .build();
     }
 
     public static NotificationPushDTO fromEvent(NotificationEventDTO event, String userId) {
+        SenderInfoDTO sender = event.getSenderInfo();
         return NotificationPushDTO.builder()
                 .sourceSystem(event.getSourceSystem())
                 .recipientUserId(userId)
                 .message(event.getMessage())
                 .actionUrl(event.getActionUrl())
+                .senderUserId(sender != null ? sender.getUserId() : null)
+                .senderDisplayName(sender != null ? sender.getDisplayName() : null)
+                .senderAvatarUrl(sender != null ? sender.getAvatarUrl() : null)
                 .build();
     }
 }

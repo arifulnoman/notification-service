@@ -17,18 +17,24 @@ import lombok.NoArgsConstructor;
 public class NotificationResponse {
 
     private UUID id;
-    
+
     private String sourceSystem;
-    
+
     private String recipientUserId;
-    
+
     private String message;
-    
+
     private String actionUrl;
-    
+
     private boolean isRead;
-    
+
     private LocalDateTime createdAt;
+
+    private String senderUserId;
+
+    private String senderDisplayName;
+
+    private String senderAvatarUrl;
 
     public static NotificationResponse fromEntity(Notification notification) {
         return NotificationResponse.builder()
@@ -39,6 +45,9 @@ public class NotificationResponse {
                 .actionUrl(notification.getActionUrl())
                 .isRead(notification.isRead())
                 .createdAt(notification.getCreatedAt())
+                .senderUserId(notification.getSenderUserId())
+                .senderDisplayName(notification.getSenderDisplayName())
+                .senderAvatarUrl(notification.getSenderAvatarUrl())
                 .build();
     }
 }

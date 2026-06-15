@@ -43,4 +43,13 @@ public class Notification {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "sender_user_id")
+    private String senderUserId;
+
+    @Column(name = "sender_display_name")
+    private String senderDisplayName;
+
+    @Column(name = "sender_avatar_url", length = 1024)
+    private String senderAvatarUrl;
 }
