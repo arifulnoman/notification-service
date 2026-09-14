@@ -13,6 +13,11 @@ public class UserLookupUrlRequest {
     @NotBlank(message = "userLookupUrl is required")
     private String userLookupUrl;
 
-    /** Optional — sent as the "X-Internal-Api-Key" header on every call to userLookupUrl. */
+    /**
+     * Required — sent as the "X-Internal-Api-Key" header on every call to userLookupUrl.
+     * A lookup endpoint with no key on the call would be reachable unauthenticated, so this
+     * registry never stores one without the other.
+     */
+    @NotBlank(message = "userLookupApiKey is required")
     private String userLookupApiKey;
 }

@@ -26,6 +26,10 @@ public class RegisterServiceRequest {
     /** Optional — endpoint CNS can call to resolve this service's users' current avatar/display name. */
     private String userLookupUrl;
 
-    /** Optional — sent as the "X-Internal-Api-Key" header on every call to userLookupUrl. */
+    /**
+     * Required whenever userLookupUrl is set — sent as the "X-Internal-Api-Key" header on every
+     * call to userLookupUrl. Enforced in {@link ServiceRegistryService#register}, since the pairing
+     * (not either field alone) is what determines whether the lookup call is authenticated.
+     */
     private String userLookupApiKey;
 }

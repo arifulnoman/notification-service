@@ -84,6 +84,11 @@ public class ServiceRegistryService {
                 ? request.getQueueName().trim()
                 : tenantId + "." + sourceSystem + ".notification.queue";
 
+        if (StringUtils.hasText(request.getUserLookupUrl()) && !StringUtils.hasText(request.getUserLookupApiKey())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "userLookupApiKey is required when userLookupUrl is set");
+        }
+
         if (findByTenantAndSourceSystem(tenantId, sourceSystem).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Service [" + sourceSystem + "] for tenant [" + tenantId + "] is already registered");

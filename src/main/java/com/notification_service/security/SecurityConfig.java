@@ -37,6 +37,13 @@ public class SecurityConfig {
                 // The interceptor handles the actual STOMP CONNECT frame security.
                 .requestMatchers("/ws-notifications/**").permitAll()
                 .requestMatchers("/").permitAll()
+                // Any 4xx/5xx thrown as a ResponseStatusException (e.g. NOT_FOUND, CONFLICT from
+                // the registry service) makes the servlet container forward internally to
+                // "/error" to render it — a second pass through this same filter chain, on which
+                // AdminApiKeyFilter no longer sees an "/api/admin/**" path and so authenticates
+                // nothing. Without this, anyRequest().authenticated() below would mask every such
+                // response behind a misleading 401. See BasicErrorController.
+                .requestMatchers("/error").permitAll()
                 // Static admin panel shell — unauthenticated; it's just HTML/JS that prompts
                 // for the X-Admin-Api-Key and attaches it to the /api/admin/** calls below.
                 .requestMatchers("/admin", "/admin/**").permitAll()
