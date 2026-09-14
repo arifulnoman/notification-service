@@ -17,7 +17,8 @@ public class RegisterServiceRequest {
     @NotBlank(message = "sourceSystem is required")
     private String sourceSystem;
 
-    /** Optional — public key CNS will use to verify this deployment's JWTs (see step 1 in the README). */
+    /** Public key CNS will use to verify this deployment's JWTs (see step 1 in the README). */
+    @NotBlank(message = "jwtPublicKey is required")
     private String jwtPublicKey;
 
     /** Optional — defaults to "<tenantId>.<sourceSystem>.notification.queue" when omitted. */
