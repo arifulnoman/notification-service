@@ -4,18 +4,24 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.notification_service.dto.NotificationEventDTO;
 import com.notification_service.dto.NotificationPushDTO;
 import com.notification_service.dto.NotificationResponse;
 import com.notification_service.entity.Notification;
+import com.notification_service.registry.ResolvedSenderInfo;
+import com.notification_service.registry.SenderProfileResolver;
 import com.notification_service.repository.NotificationRepository;
 import com.notification_service.tenant.TenantContext;
 
@@ -29,6 +35,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final SenderProfileResolver senderProfileResolver;
 
     @Transactional(rollbackFor = Exception.class)
     public void processNotificationEvent(NotificationEventDTO event) {
@@ -104,7 +111,33 @@ public class NotificationService {
                     .findByRecipientUserIdOrderByCreatedAtDesc(userId, pageable);
         }
 
-        return page.map(NotificationResponse::fromEntity);
+        Map<String, ResolvedSenderInfo> freshSenderInfoByUserId = resolveFreshSenderInfo(page.getContent());
+        return page.map(notification ->
+                NotificationResponse.fromEntity(notification, freshSenderInfoByUserId.get(notification.getSenderUserId())));
+    }
+
+    /**
+     * One user-lookup call per source system present on this page (almost
+     * always one, at most a handful) instead of one per row — avoids
+     * fanning out an HTTP call per notification just to keep avatars fresh.
+     *
+     * The current tenant is read from TenantContext (set for the duration of
+     * this request by JwtAuthenticationFilter) since the registry is keyed
+     * by (tenantId, sourceSystem) — each tenant's deployment of a source
+     * system has its own lookup URL.
+     */
+    private Map<String, ResolvedSenderInfo> resolveFreshSenderInfo(List<Notification> notifications) {
+        String tenantId = TenantContext.getTenantId();
+        Map<String, Set<String>> senderIdsBySourceSystem = notifications.stream()
+                .filter(n -> n.getSenderUserId() != null)
+                .collect(Collectors.groupingBy(
+                        Notification::getSourceSystem,
+                        Collectors.mapping(Notification::getSenderUserId, Collectors.toSet())));
+
+        Map<String, ResolvedSenderInfo> merged = new HashMap<>();
+        senderIdsBySourceSystem.forEach((sourceSystem, senderIds) ->
+                merged.putAll(senderProfileResolver.resolve(tenantId, sourceSystem, senderIds)));
+        return merged;
     }
 
     @Transactional(readOnly = true)
@@ -119,6 +152,21 @@ public class NotificationService {
             notificationRepository.save(notification);
             pushNotificationAndCount(null, notification.getRecipientUserId());
         });
+    }
+
+    @Transactional
+    public void deleteNotification(UUID id, String userId) {
+        Notification notification = notificationRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Notification not found"));
+
+        if (!notification.getRecipientUserId().equals(userId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Cannot delete another user's notification");
+        }
+
+        notificationRepository.delete(notification);
+        pushNotificationAndCount(null, userId);
     }
 
     @Transactional
