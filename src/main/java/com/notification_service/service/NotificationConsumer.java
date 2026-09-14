@@ -1,6 +1,5 @@
 package com.notification_service.service;
 
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -18,16 +17,16 @@ public class NotificationConsumer {
     private final NotificationService notificationService;
 
     /**
-     * Listens to all queues defined in rabbitmq.queues (comma-separated).
+     * Invoked by a dynamically started listener container — one per registered
+     * service's queue, wired up by {@code DynamicNotificationListenerRegistrar}
+     * (see {@code com.notification_service.registry}) instead of a static
+     * "@RabbitListener(queues=...)" list, so a new integration's queue starts
+     * being consumed the moment it registers.
      *
      * MQ listener threads have no HTTP context, so the JWT filter never runs.
      * TenantContext is set manually from the event's tenantId field so that
      * TenantAwareDataSource routes JPA queries to the correct tenant DB.
-     *
-     * Example property:
-     *   rabbitmq.queues=hrms.notification.queue,erp.notification.queue
      */
-    @RabbitListener(queues = "#{'${rabbitmq.queues}'.split(',')}")
     public void consumeNotificationEvent(NotificationEventDTO event) {
         if (!StringUtils.hasText(event.getTenantId())) {
             log.error("Received notification event without a tenantId from source: [{}]. Rejecting message.", 
