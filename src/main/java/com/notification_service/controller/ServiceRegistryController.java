@@ -68,4 +68,10 @@ public class ServiceRegistryController {
         serviceRegistryService.deactivate(tenantId, sourceSystem);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/{tenantId}/{sourceSystem}/activate")
+    public ResponseEntity<RegisteredService> reactivate(
+            @PathVariable String tenantId, @PathVariable String sourceSystem) {
+        return ResponseEntity.ok(serviceRegistryService.reactivate(tenantId, sourceSystem));
+    }
 }

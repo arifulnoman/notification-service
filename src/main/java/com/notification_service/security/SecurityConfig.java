@@ -37,6 +37,9 @@ public class SecurityConfig {
                 // The interceptor handles the actual STOMP CONNECT frame security.
                 .requestMatchers("/ws-notifications/**").permitAll()
                 .requestMatchers("/").permitAll()
+                // Static admin panel shell — unauthenticated; it's just HTML/JS that prompts
+                // for the X-Admin-Api-Key and attaches it to the /api/admin/** calls below.
+                .requestMatchers("/admin", "/admin/**").permitAll()
                 // Service registry onboarding — guarded by AdminApiKeyFilter below, not end-user JWTs.
                 .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                 .anyRequest().authenticated()

@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CNS Registry Admin</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --border: #e0e2e7;
+    --text: #1c1f26;
+    --muted: #6b7280;
+    --accent: #2f6fed;
+    --accent-text: #ffffff;
+    --danger: #d1435b;
+    --ok: #1a8f5e;
+    --code-bg: #f0f1f4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161b;
+      --surface: #1c1f26;
+      --border: #2c303a;
+      --text: #e7e9ee;
+      --muted: #9aa0ac;
+      --accent: #5b8def;
+      --accent-text: #0c111b;
+      --danger: #ef6b81;
+      --ok: #3ecf8e;
+      --code-bg: #11141a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding-block: 24px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding-inline: 20px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; font-size: 13px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 12px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 200px; min-width: 0; }
+  .field.wide { flex-basis: 100%; }
+  label { font-size: 12px; color: var(--muted); }
+  input, textarea {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: var(--text);
+    font: inherit;
+    width: 100%;
+  }
+  textarea { resize: vertical; min-height: 60px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+  button {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  button.danger { color: var(--danger); border-color: var(--danger); background: transparent; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  tr:last-child td { border-bottom: none; }
+  td.truncate {
+    max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  th:last-child, td:last-child { width: 300px; }
+  .mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .pill.active { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+  .pill.inactive { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+  .actions { display: flex; gap: 6px; flex-wrap: nowrap; }
+  .actions button { padding: 5px 9px; font-size: 12px; flex: 1 1 0; text-align: center; }
+  button.ok { color: var(--ok); border-color: var(--ok); background: transparent; }
+  .empty { color: var(--muted); text-align: center; padding: 28px 0; }
+  .banner {
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; display: none;
+  }
+  .banner.error { display: block; background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
+  .banner.ok { display: block; background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+  .keybar { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; }
+  .keybar input { max-width: 320px; }
+  .keybar .status { font-size: 12px; color: var(--muted); padding-bottom: 9px; }
+  details > summary { cursor: pointer; font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  dialog {
+    border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text);
+    padding: 20px; width: min(480px, 92vw);
+  }
+  dialog::backdrop { background: rgba(0,0,0,.4); }
+  dialog h3 { margin: 0 0 12px; font-size: 15px; }
+  dialog .row { margin-bottom: 12px; }
+  dialog .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>CNS Registry Admin</h1>
+  <p class="sub">Manage systems registered to publish notifications through the Central Notification Service.</p>
+
+  <div class="keybar">
+    <div class="field" style="flex:0 0 auto;">
+      <label for="apiKey">X-Admin-Api-Key</label>
+      <input id="apiKey" type="password" placeholder="admin api key" autocomplete="off">
+    </div>
+    <button id="saveKeyBtn">Save key</button>
+    <button id="refreshBtn">Refresh</button>
+    <span class="status" id="keyStatus"></span>
+  </div>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="card">
+    <details>
+      <summary>Register a new service</summary>
+      <form id="registerForm" style="margin-top:14px;">
+        <div class="row">
+          <div class="field">
+            <label for="r-tenantId">Tenant ID *</label>
+            <input id="r-tenantId" name="tenantId" required>
+          </div>
+          <div class="field">
+            <label for="r-sourceSystem">Source system *</label>
+            <input id="r-sourceSystem" name="sourceSystem" required>
+          </div>
+          <div class="field">
+            <label for="r-queueName">Queue name (optional)</label>
+            <input id="r-queueName" name="queueName" placeholder="&lt;tenantId&gt;.&lt;sourceSystem&gt;.notification.queue">
+          </div>
+        </div>
+        <div class="row">
+          <div class="field wide">
+            <label for="r-jwtPublicKey">JWT public key (optional)</label>
+            <textarea id="r-jwtPublicKey" name="jwtPublicKey" placeholder="-----BEGIN PUBLIC KEY-----"></textarea>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="r-userLookupUrl">User lookup URL (optional)</label>
+            <input id="r-userLookupUrl" name="userLookupUrl" placeholder="https://.../api/internal/users">
+          </div>
+          <div class="field">
+            <label for="r-userLookupApiKey">User lookup API key (required if URL is set)</label>
+            <input id="r-userLookupApiKey" name="userLookupApiKey">
+          </div>
+        </div>
+        <div class="row" style="margin-top:4px;">
+          <button type="submit" class="primary">Register service</button>
+        </div>
+      </form>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2>Registered services</h2>
+    <div id="tableHost"><div class="empty">Loading&hellip;</div></div>
+  </div>
+</div>
+
+<dialog id="rotateDialog">
+  <h3>Rotate JWT public key</h3>
+  <p class="sub" id="rotateTarget"></p>
+  <div class="row">
+    <div class="field wide">
+      <label for="rotateKeyInput">New JWT public key</label>
+      <textarea id="rotateKeyInput" placeholder="-----BEGIN PUBLIC KEY-----"></textarea>
+    </div>
+  </div>
+  <div class="dialog-actions">
+    <button id="rotateCancel">Cancel</button>
+    <button id="rotateConfirm" class="primary">Rotate key</button>
+  </div>
+</dialog>
+
+<dialog id="lookupDialog">
+  <h3>Set user lookup URL</h3>
+  <p class="sub" id="lookupTarget"></p>
+  <div class="row">
+    <div class="field wide">
+      <label for="lookupUrlInput">User lookup URL</label>
+      <input id="lookupUrlInput" placeholder="https://.../api/internal/users">
+    </div>
+  </div>
+  <div class="row">
+    <div class="field wide">
+      <label for="lookupApiKeyInput">User lookup API key</label>
+      <input id="lookupApiKeyInput">
+    </div>
+  </div>
+  <div class="dialog-actions">
+    <button id="lookupCancel">Cancel</button>
+    <button id="lookupConfirm" class="primary">Save</button>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  const API_BASE = '/api/admin/services';
+  const KEY_STORAGE = 'cns_admin_api_key';
+
+  const $ = (id) => document.getElementById(id);
+  const apiKeyInput = $('apiKey');
+  const keyStatus = $('keyStatus');
+  const banner = $('banner');
+  const tableHost = $('tableHost');
+
+  apiKeyInput.value = localStorage.getItem(KEY_STORAGE) || '';
+  updateKeyStatus();
+
+  function updateKeyStatus() {
+    keyStatus.textContent = apiKeyInput.value ? 'Key set' : 'No key saved — requests will be rejected';
+  }
+
+  $('saveKeyBtn').addEventListener('click', () => {
+    localStorage.setItem(KEY_STORAGE, apiKeyInput.value);
+    updateKeyStatus();
+    showBanner('ok', 'API key saved to this browser.');
+    loadServices();
+  });
+
+  $('refreshBtn').addEventListener('click', loadServices);
+
+  function showBanner(kind, message) {
+    banner.className = 'banner ' + kind;
+    banner.textContent = message;
+    if (kind === 'ok') {
+      setTimeout(() => { if (banner.textContent === message) banner.className = 'banner'; }, 4000);
+    }
+  }
+
+  async function api(path, options) {
+    const res = await fetch(API_BASE + path, Object.assign({
+      headers: Object.assign({
+        'X-Admin-Api-Key': localStorage.getItem(KEY_STORAGE) || '',
+        'Content-Type': 'application/json'
+      }, (options && options.headers) || {})
+    }, options || {}));
+
+    if (!res.ok) {
+      let message = res.status + ' ' + res.statusText;
+      try {
+        const body = await res.json();
+        if (body && body.message) message = body.message;
+      } catch (e) { /* no JSON body */ }
+      throw new Error(message);
+    }
+    if (res.status === 204) return null;
+    return res.json();
+  }
+
+  function esc(value) {
+    const div = document.createElement('div');
+    div.textContent = value == null ? '' : String(value);
+    return div.innerHTML;
+  }
+
+  function renderTable(services) {
+    if (!services.length) {
+      tableHost.innerHTML = '<div class="empty">No services registered yet.</div>';
+      return;
+    }
+    const rows = services.map((s) => `
+      <tr>
+        <td class="mono truncate" title="${esc(s.tenantId)}">${esc(s.tenantId)}</td>
+        <td class="mono truncate" title="${esc(s.sourceSystem)}">${esc(s.sourceSystem)}</td>
+        <td class="mono truncate" title="${esc(s.queueName)}">${esc(s.queueName)}</td>
+        <td class="mono truncate" title="${esc(s.userLookupUrl || '')}">${s.userLookupUrl ? esc(s.userLookupUrl) : '<span style="color:var(--muted)">not set</span>'}</td>
+        <td><span class="pill ${s.active ? 'active' : 'inactive'}">${s.active ? 'active' : 'inactive'}</span></td>
+        <td class="actions">
+          <button data-act="rotate" data-tenant="${esc(s.tenantId)}" data-source="${esc(s.sourceSystem)}">Rotate key</button>
+          <button data-act="lookup" data-tenant="${esc(s.tenantId)}" data-source="${esc(s.sourceSystem)}"
+                  data-url="${esc(s.userLookupUrl || '')}" data-apikey="${esc(s.userLookupApiKey || '')}">Lookup URL</button>
+          ${s.active
+              ? `<button data-act="deactivate" data-tenant="${esc(s.tenantId)}" data-source="${esc(s.sourceSystem)}" class="danger">Deactivate</button>`
+              : `<button data-act="reactivate" data-tenant="${esc(s.tenantId)}" data-source="${esc(s.sourceSystem)}" class="ok">Reactivate</button>`}
+        </td>
+      </tr>`).join('');
+
+    tableHost.innerHTML = `
+      <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Tenant</th><th>Source system</th><th>Queue</th><th>User lookup URL</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      </div>`;
+
+    tableHost.querySelectorAll('button[data-act]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const { act, tenant, source, url, apikey } = btn.dataset;
+        if (act === 'rotate') openRotateDialog(tenant, source);
+        else if (act === 'lookup') openLookupDialog(tenant, source, url, apikey);
+        else if (act === 'deactivate') deactivate(tenant, source);
+        else if (act === 'reactivate') reactivate(tenant, source);
+      });
+    });
+  }
+
+  async function loadServices() {
+    tableHost.innerHTML = '<div class="empty">Loading&hellip;</div>';
+    try {
+      const services = await api('', { method: 'GET' });
+      renderTable(services);
+    } catch (err) {
+      tableHost.innerHTML = '<div class="empty">Could not load services.</div>';
+      showBanner('error', 'Failed to load services: ' + err.message);
+    }
+  }
+
+  $('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const payload = {
+      tenantId: $('r-tenantId').value.trim(),
+      sourceSystem: $('r-sourceSystem').value.trim(),
+      jwtPublicKey: $('r-jwtPublicKey').value.trim() || null,
+      queueName: $('r-queueName').value.trim() || null,
+      userLookupUrl: $('r-userLookupUrl').value.trim() || null,
+      userLookupApiKey: $('r-userLookupApiKey').value.trim() || null
+    };
+    if (payload.userLookupUrl && !payload.userLookupApiKey) {
+      showBanner('error', 'User lookup API key is required when a user lookup URL is set.');
+      return;
+    }
+    try {
+      await api('', { method: 'POST', body: JSON.stringify(payload) });
+      showBanner('ok', `Registered ${payload.tenantId}/${payload.sourceSystem}.`);
+      e.target.reset();
+      loadServices();
+    } catch (err) {
+      showBanner('error', 'Registration failed: ' + err.message);
+    }
+  });
+
+  const rotateDialog = $('rotateDialog');
+  let rotateTarget = null;
+  function openRotateDialog(tenant, source) {
+    rotateTarget = { tenant, source };
+    $('rotateTarget').textContent = `${tenant} / ${source}`;
+    $('rotateKeyInput').value = '';
+    rotateDialog.showModal();
+  }
+  $('rotateCancel').addEventListener('click', () => rotateDialog.close());
+  $('rotateConfirm').addEventListener('click', async () => {
+    const jwtPublicKey = $('rotateKeyInput').value.trim();
+    if (!jwtPublicKey) { showBanner('error', 'JWT public key is required.'); return; }
+    try {
+      await api(`/${encodeURIComponent(rotateTarget.tenant)}/${encodeURIComponent(rotateTarget.source)}/jwt-public-key`, {
+        method: 'PUT', body: JSON.stringify({ jwtPublicKey })
+      });
+      rotateDialog.close();
+      showBanner('ok', `Rotated key for ${rotateTarget.tenant}/${rotateTarget.source}.`);
+      loadServices();
+    } catch (err) {
+      showBanner('error', 'Key rotation failed: ' + err.message);
+    }
+  });
+
+  const lookupDialog = $('lookupDialog');
+  let lookupTarget = null;
+  function openLookupDialog(tenant, source, currentUrl, currentApiKey) {
+    lookupTarget = { tenant, source };
+    $('lookupTarget').textContent = `${tenant} / ${source}`;
+    $('lookupUrlInput').value = currentUrl || '';
+    $('lookupApiKeyInput').value = currentApiKey || '';
+    lookupDialog.showModal();
+  }
+  $('lookupCancel').addEventListener('click', () => lookupDialog.close());
+  $('lookupConfirm').addEventListener('click', async () => {
+    const userLookupUrl = $('lookupUrlInput').value.trim();
+    if (!userLookupUrl) { showBanner('error', 'User lookup URL is required.'); return; }
+    const userLookupApiKey = $('lookupApiKeyInput').value.trim();
+    if (!userLookupApiKey) { showBanner('error', 'User lookup API key is required.'); return; }
+    try {
+      await api(`/${encodeURIComponent(lookupTarget.tenant)}/${encodeURIComponent(lookupTarget.source)}/user-lookup-url`, {
+        method: 'PUT', body: JSON.stringify({ userLookupUrl, userLookupApiKey })
+      });
+      lookupDialog.close();
+      showBanner('ok', `Updated lookup URL for ${lookupTarget.tenant}/${lookupTarget.source}.`);
+      loadServices();
+    } catch (err) {
+      showBanner('error', 'Update failed: ' + err.message);
+    }
+  });
+
+  async function deactivate(tenant, source) {
+    if (!confirm(`Deactivate ${tenant}/${source}? It will stop being able to publish notifications.`)) return;
+    try {
+      await api(`/${encodeURIComponent(tenant)}/${encodeURIComponent(source)}`, { method: 'DELETE' });
+      showBanner('ok', `Deactivated ${tenant}/${source}.`);
+      loadServices();
+    } catch (err) {
+      showBanner('error', 'Deactivation failed: ' + err.message);
+    }
+  }
+
+  async function reactivate(tenant, source) {
+    try {
+      await api(`/${encodeURIComponent(tenant)}/${encodeURIComponent(source)}/activate`, { method: 'PUT' });
+      showBanner('ok', `Reactivated ${tenant}/${source}.`);
+      loadServices();
+    } catch (err) {
+      showBanner('error', 'Reactivation failed: ' + err.message);
+    }
+  }
+
+  loadServices();
+})();
+</script>
+</body>
+</html>

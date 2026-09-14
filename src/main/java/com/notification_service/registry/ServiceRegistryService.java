@@ -175,6 +175,23 @@ public class ServiceRegistryService {
                 sourceSystem, tenantId, service.getQueueName());
     }
 
+    public RegisteredService reactivate(String tenantId, String sourceSystem) {
+        RegisteredService service = findByTenantAndSourceSystem(tenantId, sourceSystem)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Service [" + sourceSystem + "] for tenant [" + tenantId + "] is not registered"));
+        if (service.isActive()) {
+            return service;
+        }
+        masterJdbc.update(
+                "UPDATE registered_services SET is_active = TRUE, updated_at = ? WHERE tenant_id = ? AND source_system = ?",
+                LocalDateTime.now(), tenantId, sourceSystem);
+        service.setActive(true);
+        activate(service);
+        log.info("Reactivated service [{}] tenant [{}] — queue [{}] listener restarted",
+                sourceSystem, tenantId, service.getQueueName());
+        return service;
+    }
+
     private RegisteredService requireActive(String tenantId, String sourceSystem) {
         return findByTenantAndSourceSystem(tenantId, sourceSystem)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
