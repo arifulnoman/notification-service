@@ -6,6 +6,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -54,6 +56,23 @@ public class NotificationController {
     public ResponseEntity<Void> markAllAsRead(@RequestParam String userId) {
         notificationService.markAllAsRead(userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteNotification(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal String principal) {
+        notificationService.deleteNotification(id, resolveUserId(principal));
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * The authenticated principal is "tenantId:userId" (see JwtTokenProvider).
+     * Callers never supply their own userId — it is taken from the JWT.
+     */
+    private String resolveUserId(String principal) {
+        int separator = principal.indexOf(':');
+        return separator >= 0 ? principal.substring(separator + 1) : principal;
     }
 }
 
