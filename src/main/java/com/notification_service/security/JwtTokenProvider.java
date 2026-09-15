@@ -52,7 +52,9 @@ public class JwtTokenProvider {
             parseClaims(authToken);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
-            log.error("Invalid JWT token", e);
+            // Expected traffic, not a bug here — a client with an expired/malformed/unregistered
+            // token, not a failure in this service — so one line at WARN, no stack trace.
+            log.warn("Rejected JWT: {}: {}", e.getClass().getSimpleName(), e.getMessage());
         }
         return false;
     }
